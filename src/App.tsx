@@ -29,7 +29,7 @@ interface SetInfo {
   count: number;
 }
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:3000';
 
 function App() {
   const [view, setView] = useState<'collection' | 'browse'>('collection');
