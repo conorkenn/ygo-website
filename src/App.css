@@ -79,6 +79,7 @@ main {
   border-radius: 12px;
   overflow: visible;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .card-item:hover {
@@ -169,6 +170,33 @@ main {
   margin-bottom: 30px;
 }
 
+.set-search {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.set-search input {
+  padding: 12px 20px;
+  font-size: 1rem;
+  border: 2px solid #4ade80;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 100%;
+  max-width: 500px;
+}
+
+.set-search input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.set-search input:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
 .sets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -237,6 +265,7 @@ main {
   border-radius: 10px;
   overflow: visible;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .set-card-item:hover {
@@ -285,4 +314,111 @@ main {
 
 .set-card-item button:hover {
   background: #22c55e;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid #ffd700;
+  border-radius: 16px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.modal-image {
+  width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  background: #0a0a1a;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.modal-info {
+  text-align: center;
+}
+
+.modal-info h2 {
+  color: #ffd700;
+  margin: 0 0 10px;
+  font-size: 1.4rem;
+}
+
+.modal-type {
+  color: #aaa;
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+.modal-rarity {
+  color: #4ade80;
+  margin: 5px 0;
+}
+
+.modal-price {
+  color: #4ade80;
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.modal-count {
+  color: #ffd700;
+  font-weight: bold;
 }

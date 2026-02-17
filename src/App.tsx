@@ -29,6 +29,51 @@ interface SetInfo {
   count: number;
 }
 
+// Modal component for card details
+function CardModal({ 
+  card, 
+  onClose 
+}: { 
+  card: SetCard | Card; 
+  onClose: () => void;
+}) {
+  const cardId = 'id' in card ? card.id : card.cardId;
+  
+  // Handle click outside modal to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={handleBackdropClick}>
+      <div className="modal-content">
+        <button className="modal-close" onClick={onClose}>×</button>
+        <img
+          src={`https://images.ygoprodeck.com/images/cards/${cardId}.jpg`}
+          alt={card.name}
+          className="modal-image"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x420?text=No+Image';
+          }}
+        />
+        <div className="modal-info">
+          <h2>{card.name}</h2>
+          {'type' in card && <p className="modal-type">{card.type}</p>}
+          {'rarity' in card && <p className="modal-rarity">Rarity: {card.rarity}</p>}
+          {'price' in card && (
+            <p className="modal-price">
+              ${'count' in card ? (card.price * card.count).toFixed(2) : parseFloat(card.price).toFixed(2)}
+            </p>
+          )}
+          {'count' in card && <p className="modal-count">×{card.count} in collection</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const API_URL = 'http://localhost:3000';
 
 function App() {
@@ -43,6 +88,12 @@ function App() {
   const [selectedSet, setSelectedSet] = useState<string | null>(null);
   const [setCards, setSetCards] = useState<SetCard[]>([]);
   const [isSetLoading, setIsSetLoading] = useState(false);
+  
+  // Modal state
+  const [modalCard, setModalCard] = useState<SetCard | Card | null>(null);
+  
+  // Search state for filtering sets
+  const [setSearch, setSetSearch] = useState('');
 
   useEffect(() => {
     fetchCollection();
@@ -182,7 +233,11 @@ function App() {
                 <p className="empty">Your collection is empty! Add some cards.</p>
               ) : (
                 collection.map((card) => (
-                  <div key={card.cardId} className="card-item">
+                  <div 
+                    key={card.cardId} 
+                    className="card-item"
+                    onClick={() => setModalCard(card)}
+                  >
                     <img
                       src={`https://images.ygoprodeck.com/images/cards/${card.cardId}.jpg`}
                       alt={card.name}
@@ -194,7 +249,9 @@ function App() {
                       <h3>{card.name}</h3>
                       <p>×{card.count}</p>
                       <p className="price">${(card.price * card.count).toFixed(2)}</p>
-                      <button onClick={() => removeCard(card.name)}>Remove</button>
+                      <button onClick={(e) => { e.stopPropagation(); removeCard(card.name); }}>
+                        Remove
+                      </button>
                     </div>
                   </div>
                 ))
@@ -206,25 +263,43 @@ function App() {
             {!selectedSet ? (
               <>
                 <h2>📚 Browse Sets</h2>
-                <div className="sets-grid">
-                  {sets.map((set) => (
-                    <div 
-                      key={set.code} 
-                      className="set-card"
-                      onClick={() => fetchSetCards(set.name)}
-                    >
-                      <h3>{set.name}</h3>
-                      <p>📅 {set.year}</p>
-                      <p className="set-code">{set.code}</p>
-                    </div>
-                  ))}
+                <div className="set-search">
+                  <input
+                    type="text"
+                    value={setSearch}
+                    onChange={(e) => setSetSearch(e.target.value)}
+                    placeholder="Search sets (e.g., 'Metal Raiders', 'Speed Duel')"
+                  />
                 </div>
+                <div className="sets-grid">
+                  {sets
+                    .filter(set => {
+                      const search = setSearch.toLowerCase().trim();
+                      if (!search) return true;
+                      return set.name.toLowerCase().includes(search);
+                    })
+                    .map((set) => (
+                      <div 
+                        key={set.code} 
+                        className="set-card"
+                        onClick={() => fetchSetCards(set.name)}
+                      >
+                        <h3>{set.name}</h3>
+                        <p>📅 {set.year}</p>
+                        <p className="set-code">{set.code}</p>
+                      </div>
+                    ))}
+                </div>
+                {sets.filter(set => setSearch && set.name.toLowerCase().includes(setSearch.toLowerCase())).length === 0 && setSearch && (
+                  <p className="empty">No sets found matching "{setSearch}"</p>
+                )}
               </>
             ) : (
               <div className="set-results">
                 <button className="back-btn" onClick={() => {
                   setSelectedSet(null);
                   setSetCards([]);
+                  setSetSearch(''); // Clear search when going back
                 }}>
                   ← Back to Sets
                 </button>
@@ -236,7 +311,11 @@ function App() {
                 ) : (
                   <div className="set-cards-grid">
                     {setCards.map((card) => (
-                      <div key={card.id} className="set-card-item">
+                      <div 
+                        key={card.id} 
+                        className="set-card-item"
+                        onClick={() => setModalCard(card)}
+                      >
                         <img
                           src={`https://images.ygoprodeck.com/images/cards/${card.id}.jpg`}
                           alt={card.name}
@@ -248,7 +327,12 @@ function App() {
                           <h4>{card.name}</h4>
                           <p className="rarity">{card.rarity}</p>
                           <p className="price">${parseFloat(card.price).toFixed(2)}</p>
-                          <button onClick={() => addCardFromSet(card.name)}>
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              addCardFromSet(card.name); 
+                            }}
+                          >
                             + Add
                           </button>
                         </div>
@@ -261,6 +345,11 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Card Modal */}
+      {modalCard && (
+        <CardModal card={modalCard} onClose={() => setModalCard(null)} />
+      )}
     </div>
   );
 }
