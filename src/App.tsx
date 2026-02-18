@@ -94,6 +94,10 @@ function App() {
   
   // Search state for filtering sets
   const [setSearch, setSetSearch] = useState('');
+  
+  // Filter state for set cards
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [rarityFilter, setRarityFilter] = useState('all');
 
   useEffect(() => {
     fetchCollection();
@@ -188,6 +192,57 @@ function App() {
     } catch (error) {
       console.error('Error adding card:', error);
     }
+  };
+
+  // Get unique types and rarities for filters
+  const getUniqueTypes = () => {
+    const types = setCards.map(card => {
+      if (card.type.includes('Spell')) return 'Spell';
+      if (card.type.includes('Trap')) return 'Trap';
+      if (card.type.includes('Link')) return 'Link Monster';
+      if (card.type.includes('XYZ')) return 'XYZ Monster';
+      if (card.type.includes('Synchro')) return 'Synchro Monster';
+      if (card.type.includes('Fusion')) return 'Fusion Monster';
+      if (card.type.includes('Effect')) return 'Effect Monster';
+      if (card.type.includes('Normal')) return 'Normal Monster';
+      return 'Monster';
+    });
+    return ['all', ...Array.from(new Set(types))];
+  };
+
+  const getUniqueRarities = () => {
+    const rarities = setCards.map(card => card.rarity).filter(Boolean);
+    return ['all', ...Array.from(new Set(rarities))];
+  };
+
+  // Clear filters when leaving set
+  const handleBackToSets = () => {
+    setSelectedSet(null);
+    setSetCards([]);
+    setSetSearch('');
+    setTypeFilter('all');
+    setRarityFilter('all');
+  };
+
+  // Get filtered cards based on current filters
+  const getFilteredCards = () => {
+    return setCards.filter(card => {
+      // Type filter
+      if (typeFilter !== 'all') {
+        if (typeFilter === 'Spell' && !card.type.includes('Spell')) return false;
+        if (typeFilter === 'Trap' && !card.type.includes('Trap')) return false;
+        if (typeFilter === 'Link Monster' && !card.type.includes('Link')) return false;
+        if (typeFilter === 'XYZ Monster' && !card.type.includes('XYZ')) return false;
+        if (typeFilter === 'Synchro Monster' && !card.type.includes('Synchro')) return false;
+        if (typeFilter === 'Fusion Monster' && !card.type.includes('Fusion')) return false;
+        if (typeFilter === 'Effect Monster' && !card.type.includes('Effect')) return false;
+        if (typeFilter === 'Normal Monster' && !card.type.includes('Normal')) return false;
+        if (typeFilter === 'Monster' && !card.type.includes('Monster')) return false;
+      }
+      // Rarity filter
+      if (rarityFilter !== 'all' && card.rarity !== rarityFilter) return false;
+      return true;
+    });
   };
 
   if (loading) {
@@ -296,47 +351,53 @@ function App() {
               </>
             ) : (
               <div className="set-results">
-                <button className="back-btn" onClick={() => {
-                  setSelectedSet(null);
-                  setSetCards([]);
-                  setSetSearch(''); // Clear search when going back
-                }}>
+                <button className="back-btn" onClick={handleBackToSets}>
                   ← Back to Sets
                 </button>
                 <h2>📦 {selectedSet}</h2>
-                <p>{setCards.length} cards found</p>
+                
+                {/* Filters */}
+                <div className="filters">
+                  <select 
+                    value={typeFilter} 
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    {getUniqueTypes().map(type => (
+                      <option key={type} value={type}>
+                        {type === 'all' ? 'All Types' : type}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <select 
+                    value={rarityFilter} 
+                    onChange={(e) => setRarityFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    {getUniqueRarities().map(rarity => (
+                      <option key={rarity} value={rarity}>
+                        {rarity === 'all' ? 'All Rarities' : rarity}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <p className="cards-count">
+                  {getFilteredCards().length} cards found
+                </p>
                 
                 {isSetLoading ? (
                   <p>Loading...</p>
                 ) : (
                   <div className="set-cards-grid">
-                    {setCards.map((card) => (
-                      <div 
+                    {getFilteredCards().map((card) => (
+                      <CardWithHover 
                         key={card.id} 
-                        className="set-card-item"
+                        card={card} 
+                        onAdd={() => addCardFromSet(card.name)}
                         onClick={() => setModalCard(card)}
-                      >
-                        <img
-                          src={`https://images.ygoprodeck.com/images/cards/${card.id}.jpg`}
-                          alt={card.name}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150x200?text=No+Image';
-                          }}
-                        />
-                        <div className="card-info">
-                          <h4>{card.name}</h4>
-                          <p className="rarity">{card.rarity}</p>
-                          <p className="price">${parseFloat(card.price).toFixed(2)}</p>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              addCardFromSet(card.name); 
-                            }}
-                          >
-                            + Add
-                          </button>
-                        </div>
-                      </div>
+                      />
                     ))}
                   </div>
                 )}
@@ -349,6 +410,64 @@ function App() {
       {/* Card Modal */}
       {modalCard && (
         <CardModal card={modalCard} onClose={() => setModalCard(null)} />
+      )}
+    </div>
+  );
+}
+
+// Card with hover preview component
+function CardWithHover({ 
+  card, 
+  onAdd, 
+  onClick 
+}: { 
+  card: SetCard; 
+  onAdd: () => void;
+  onClick: () => void;
+}) {
+  const [showHover, setShowHover] = useState(false);
+
+  return (
+    <div 
+      className="set-card-item"
+      onClick={onClick}
+      onMouseEnter={() => setShowHover(true)}
+      onMouseLeave={() => setShowHover(false)}
+    >
+      <img
+        src={`https://images.ygoprodeck.com/images/cards/${card.id}.jpg`}
+        alt={card.name}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150x200?text=No+Image';
+        }}
+      />
+      <div className="card-info">
+        <h4>{card.name}</h4>
+        <p className="rarity">{card.rarity}</p>
+        <p className="price">${parseFloat(card.price).toFixed(2)}</p>
+        <button onClick={(e) => { e.stopPropagation(); onAdd(); }}>
+          + Add
+        </button>
+      </div>
+      
+      {/* Hover preview */}
+      {showHover && (
+        <div className="card-hover-preview">
+          <img
+            src={`https://images.ygoprodeck.com/images/cards/${card.id}.jpg`}
+            alt={card.name}
+            className="hover-image"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x420?text=No+Image';
+            }}
+          />
+          <div className="hover-info">
+            <p className="hover-name">{card.name}</p>
+            <p className="hover-type">{card.type}</p>
+            <p className="hover-rarity">{card.rarity}</p>
+            <p className="hover-price">${parseFloat(card.price).toFixed(2)}</p>
+          </div>
+        </div>
       )}
     </div>
   );
