@@ -331,7 +331,16 @@ function App() {
                     .filter(set => {
                       const search = setSearch.toLowerCase().trim();
                       if (!search) return true;
-                      return set.name.toLowerCase().includes(search);
+                      const name = set.name.toLowerCase();
+                      // Match if name starts with search OR search is a "whole word" in the name
+                      // This prevents "metal" from matching "Limited"
+                      const words = name.split(/\s+/);
+                      return (
+                        name.startsWith(search) || 
+                        words.some(word => word === search) ||
+                        name.includes(' ' + search) || // search after space
+                        name.includes(search + ' ') // search before space
+                      );
                     })
                     .map((set) => (
                       <div 
@@ -345,7 +354,18 @@ function App() {
                       </div>
                     ))}
                 </div>
-                {sets.filter(set => setSearch && set.name.toLowerCase().includes(setSearch.toLowerCase())).length === 0 && setSearch && (
+                {sets.filter(set => {
+                  const search = setSearch.toLowerCase().trim();
+                  if (!search) return false;
+                  const name = set.name.toLowerCase();
+                  const words = name.split(/\s+/);
+                  return (
+                    name.startsWith(search) || 
+                    words.some(word => word === search) ||
+                    name.includes(' ' + search) ||
+                    name.includes(search + ' ')
+                  );
+                }).length === 0 && setSearch && (
                   <p className="empty">No sets found matching "{setSearch}"</p>
                 )}
               </>
