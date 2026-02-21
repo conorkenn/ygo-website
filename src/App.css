@@ -520,3 +520,63 @@ main {
   color: #ffd700;
   font-weight: bold;
 }
+
+/* Priority styles */
+.priority {
+  font-weight: bold;
+}
+
+.priority-high {
+  color: #ef4444;
+}
+
+.priority-medium {
+  color: #fbbf24;
+}
+
+.priority-low {
+  color: #6b7280;
+}
+
+/* Wishlist buttons */
+.wishlist-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.wishlist-buttons button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.wishlist-buttons .move-btn {
+  background: #4ade80;
+  color: #1a1a2e;
+}
+
+.wishlist-buttons .move-btn:hover {
+  background: #22c55e;
+}
+
+/* Priority select */
+.priority-select {
+  padding: 12px 15px;
+  font-size: 1rem;
+  border: 2px solid #fbbf24;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.priority-select:focus {
+  outline: none;
+  border-color: #ffd700;
+}
+
+.priority-select option {
+  background: #1a1a2e;
+  color: #fff;
+}

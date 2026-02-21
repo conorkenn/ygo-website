@@ -29,12 +29,21 @@ interface SetInfo {
   count: number;
 }
 
+interface WishlistCard {
+  name: string;
+  cardId: number;
+  price: number;
+  priority: 'high' | 'medium' | 'low';
+  added: string;
+  count?: number;
+}
+
 // Modal component for card details
 function CardModal({ 
   card, 
   onClose 
 }: { 
-  card: SetCard | Card; 
+  card: SetCard | Card | WishlistCard; 
   onClose: () => void;
 }) {
   const cardId = 'id' in card ? card.id : card.cardId;
@@ -64,10 +73,10 @@ function CardModal({
           {'rarity' in card && <p className="modal-rarity">Rarity: {card.rarity}</p>}
           {'price' in card && (
             <p className="modal-price">
-              ${'count' in card ? (card.price * card.count).toFixed(2) : parseFloat(card.price).toFixed(2)}
+              ${'count' in card && card.count ? (Number(card.price) * card.count).toFixed(2) : (typeof card.price === 'number' ? card.price.toFixed(2) : parseFloat(card.price).toFixed(2))}
             </p>
           )}
-          {'count' in card && <p className="modal-count">×{card.count} in collection</p>}
+          {'count' in card && card.count && <p className="modal-count">×{card.count} in collection</p>}
         </div>
       </div>
     </div>
@@ -77,7 +86,7 @@ function CardModal({
 const API_URL = 'http://localhost:3000';
 
 function App() {
-  const [view, setView] = useState<'collection' | 'browse'>('collection');
+  const [view, setView] = useState<'collection' | 'wishlist' | 'browse'>('collection');
   const [collection, setCollection] = useState<Card[]>([]);
   const [totalValue, setTotalValue] = useState<string>('0');
   const [loading, setLoading] = useState(true);
@@ -90,7 +99,12 @@ function App() {
   const [isSetLoading, setIsSetLoading] = useState(false);
   
   // Modal state
-  const [modalCard, setModalCard] = useState<SetCard | Card | null>(null);
+  const [modalCard, setModalCard] = useState<SetCard | Card | WishlistCard | null>(null);
+  
+  // Wishlist state
+  const [wishlist, setWishlist] = useState<WishlistCard[]>([]);
+  const [newWishlistCard, setNewWishlistCard] = useState('');
+  const [wishlistPriority, setWishlistPriority] = useState<'high' | 'medium' | 'low'>('medium');
   
   // Search state for filtering sets
   const [setSearch, setSetSearch] = useState('');
@@ -102,6 +116,7 @@ function App() {
   useEffect(() => {
     fetchCollection();
     fetchSets();
+    fetchWishlist();
   }, []);
 
   const fetchCollection = async () => {
@@ -138,6 +153,69 @@ function App() {
       console.error('Error fetching set cards:', error);
     } finally {
       setIsSetLoading(false);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/wishlist`);
+      const data = await res.json();
+      setWishlist(data.wishlist || []);
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+    }
+  };
+
+  const addToWishlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWishlistCard.trim()) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/wishlist/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardName: newWishlistCard, priority: wishlistPriority }),
+      });
+      
+      if (res.ok) {
+        setNewWishlistCard('');
+        fetchWishlist();
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+    }
+  };
+
+  const removeFromWishlist = async (cardName: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/wishlist/remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardName }),
+      });
+      
+      if (res.ok) {
+        fetchWishlist();
+      }
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+    }
+  };
+
+  const moveToCollection = async (cardName: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/collection/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardName }),
+      });
+      
+      if (res.ok) {
+        removeFromWishlist(cardName);
+        fetchCollection();
+      }
+    } catch (error) {
+      console.error('Error moving to collection:', error);
     }
   };
 
@@ -261,6 +339,12 @@ function App() {
             My Collection
           </button>
           <button 
+            className={view === 'wishlist' ? 'active' : ''} 
+            onClick={() => setView('wishlist')}
+          >
+            Wishlist
+          </button>
+          <button 
             className={view === 'browse' ? 'active' : ''} 
             onClick={() => setView('browse')}
           >
@@ -307,6 +391,64 @@ function App() {
                       <button onClick={(e) => { e.stopPropagation(); removeCard(card.name); }}>
                         Remove
                       </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : view === 'wishlist' ? (
+          <>
+            <form onSubmit={addToWishlist} className="add-form">
+              <input
+                type="text"
+                value={newWishlistCard}
+                onChange={(e) => setNewWishlistCard(e.target.value)}
+                placeholder="Enter card name to wishlist"
+              />
+              <select 
+                value={wishlistPriority} 
+                onChange={(e) => setWishlistPriority(e.target.value as 'high' | 'medium' | 'low')}
+                className="priority-select"
+              >
+                <option value="high">🔥 High</option>
+                <option value="medium">⭐ Medium</option>
+                <option value="low">💤 Low</option>
+              </select>
+              <button type="submit">Add to Wishlist</button>
+            </form>
+
+            <div className="collection-grid">
+              {wishlist.length === 0 ? (
+                <p className="empty">Your wishlist is empty! Add some cards you want.</p>
+              ) : (
+                wishlist.map((card) => (
+                  <div 
+                    key={card.cardId} 
+                    className="card-item"
+                    onClick={() => setModalCard(card)}
+                  >
+                    <img
+                      src={`https://images.ygoprodeck.com/images/cards/${card.cardId}.jpg`}
+                      alt={card.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150x200?text=No+Image';
+                      }}
+                    />
+                    <div className="card-info">
+                      <h3>{card.name}</h3>
+                      <p className={`priority priority-${card.priority}`}>
+                        {card.priority === 'high' ? '🔥 High' : card.priority === 'medium' ? '⭐ Medium' : '💤 Low'}
+                      </p>
+                      <p className="price">${card.price.toFixed(2)}</p>
+                      <div className="wishlist-buttons">
+                        <button onClick={(e) => { e.stopPropagation(); moveToCollection(card.name); }} className="move-btn">
+                          ✓ Got It!
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); removeFromWishlist(card.name); }}>
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
